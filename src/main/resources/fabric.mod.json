@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "id": "macekeys",
+  "version": "${version}",
+  "name": "Mace Ladder Keys",
+  "description": "Sky jump keybind and double jump for the Mace Ladder server.",
+  "authors": [
+    "Mace Ladder"
+  ],
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "com.maceladder.keys.MaceKeysClient"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.19.3",
+    "minecraft": ">=26.3",
+    "java": ">=25",
+    "fabric-api": "*"
+  }
+}
