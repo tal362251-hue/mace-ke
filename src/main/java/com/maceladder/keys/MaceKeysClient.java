@@ -50,7 +50,7 @@ public class MaceKeysClient implements ClientModInitializer {
         boolean onGround = mc.player.onGround();
         if (onGround) doubleJumpUsed = false;
         if (jumpDown && !jumpWasDown && !onGround && !doubleJumpUsed && tier >= DOUBLE_JUMP_TIER
-                && mc.currentScreen == null && !mc.player.isInWater()) {
+                && mc.getScreen() == null && !mc.player.isInWater()) {
             mc.player.connection.sendCommand("trigger mace.djump");
             doubleJumpUsed = true;
         }
