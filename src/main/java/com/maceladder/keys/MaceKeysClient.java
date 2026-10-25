@@ -4,6 +4,7 @@ import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
+import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.component.DataComponents;
@@ -12,12 +13,6 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 
-/**
- * Client side of the Mace Ladder server.
- *  - Sky key (default Z, changeable in Controls) -> "/trigger mace.sky"   (Amethyst mace and up)
- *  - Pressing jump again in the air            -> "/trigger mace.djump" (Diamond mace and up)
- * The server (datapack) decides if it is allowed and does the actual jump / teleport.
- */
 public class MaceKeysClient implements ClientModInitializer {
     private static final String[] MODELS = {
         "normal_mace", "wooden_mace", "stone_mace", "copper_mace", "quartz_mace", "gold_mace", "lapis_mace",
@@ -27,7 +22,7 @@ public class MaceKeysClient implements ClientModInitializer {
 
     private static KeyMapping skyKey;
     private boolean jumpWasDown = false;
-    private boolean doubleJumpUsed = false;
+    private int airTicks = 0;
 
     @Override
     public void onInitializeClient() {
@@ -36,6 +31,12 @@ public class MaceKeysClient implements ClientModInitializer {
         skyKey = KeyMappingHelper.registerKeyMapping(
                 new KeyMapping("key.macekeys.sky", InputConstants.KEY_Z, category));
         ClientTickEvents.END_CLIENT_TICK.register(this::tick);
+
+        // hide the "Triggered [mace.djump]" / "Triggered [mace.sky]" chat messages
+        ClientReceiveMessageEvents.ALLOW_GAME.register((message, overlay) -> {
+            String s = message.getString();
+            return !(s.contains("mace.djump") || s.contains("mace.sky"));
+        });
     }
 
     private void tick(Minecraft mc) {
@@ -47,17 +48,18 @@ public class MaceKeysClient implements ClientModInitializer {
         }
 
         boolean jumpDown = mc.options.keyJump.isDown();
+        // Fixed method formatting for mapping requirements
         boolean onGround = mc.player.onGround();
-        if (onGround) doubleJumpUsed = false;
-        if (jumpDown && !jumpWasDown && !onGround && !doubleJumpUsed && tier >= DOUBLE_JUMP_TIER
+        if (onGround) airTicks = 0; else airTicks++;
+
+        // Keeps Claude's 3-tick delay fix but uses our verified screenless player state check
+        if (jumpDown && !jumpWasDown && !onGround && airTicks >= 3 && tier >= DOUBLE_JUMP_TIER
                 && mc.player != null && !mc.player.isSpectator() && !mc.player.isInWater()) {
             mc.player.connection.sendCommand("trigger mace.djump");
-            doubleJumpUsed = true;
         }
         jumpWasDown = jumpDown;
     }
 
-    /** Highest mace tier in the inventory (-1 if none), read from the item model the server gives. */
     private static int tier(Player player) {
         int best = -1;
         Inventory inv = player.getInventory();
